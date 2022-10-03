@@ -1,8 +1,11 @@
 package dad.imc;
 
 import javafx.application.Application;
+import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -10,42 +13,38 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.converter.NumberStringConverter;
 
 public class App extends Application
 {
     private TextField peso,altura;
-    private Label imc,texto,pesoLabel,alturaLabel,unidadPeso,unidadAltura;
+    private Label imc,texto2,texto,pesoLabel,alturaLabel,unidadPeso,unidadAltura;
     private VBox rootPanel;
     private HBox pesoPanel,alturaPanel,imcPanel;
     private Scene scene;
     private DoubleProperty p, a;
+    private StringProperty r, i;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
 
-        //creamos Properties
-        p = new SimpleDoubleProperty(0);
-        a = new SimpleDoubleProperty(0);
-    //    p.addListener(e -> calcularPeso(peso.getText(), altura.getText()));
-    //    a.addListener(e -> calcularPeso(peso.getText(), altura.getText()));
+       
         // creamos cuadros de texto
-
-       p.set(Double.parseDouble(peso.getText()));
-       a.set(Double.parseDouble(altura.getText()));
-       a.bind(altura);
-
         peso = new TextField();
         peso.setMaxWidth(50);
+
         altura = new TextField();
         altura.setMaxWidth(50);
 
         //creamos etiquetas
         texto = new Label("Bajo Peso | Normal | Sobrepeso | Obeso");
-        imc = new Label("IMC: (peso * altura ^ 2)");
+        texto2 = new Label("IMC: ");
+        imc = new Label("(peso * altura ^ 2)");
         pesoLabel = new Label("Peso:");
         unidadAltura = new Label("cm");
         unidadPeso = new Label("kg");
         alturaLabel = new Label("Altura:");
+
         //creamos paneles horizontales
         pesoPanel = new HBox();
         pesoPanel.setAlignment(Pos.CENTER);
@@ -63,7 +62,7 @@ public class App extends Application
         imcPanel.setAlignment(Pos.CENTER);
         imcPanel.setFillHeight(false);
         imcPanel.setSpacing(5);
-        imcPanel.getChildren().addAll(imc);
+        imcPanel.getChildren().addAll(texto2,imc);
 
         //creamos el panel con disposicion vertical
         rootPanel = new VBox();
@@ -80,24 +79,45 @@ public class App extends Application
         primaryStage.setScene(scene);
         primaryStage.show();
 
+         //creamos Properties
+         p = new SimpleDoubleProperty();
+
+         a = new SimpleDoubleProperty();
+
+         i = new SimpleStringProperty();
+
+         r = new SimpleStringProperty();
+         
+         peso.textProperty().bindBidirectional(p, new NumberStringConverter());
+         altura.textProperty().bindBidirectional(a, new NumberStringConverter());
+         a.addListener((o,ov,on) -> calcularPeso());
+         p.addListener((o,ov,on) -> calcularPeso());
+
     }
 
-    private void calcularPeso(DoubleProperty peso, DoubleProperty alt){
-        double a = alt.getValue();
-        double p = peso.getValue();
-        double num;
-        num = (p/(Math.pow(a, 2)));
-        imc.setText(String.format("IMC: %.2f", num));
+    private void calcularPeso(){
+        if(Integer.parseInt(peso.getText())>0 && Integer.parseInt(altura.getText())>0){       
+            DoubleBinding alt = a.divide(100);
+            alt = alt.multiply(alt);
+            DoubleBinding res = p.divide(alt);
+            if(res.doubleValue()<18.5)
+                r.set("Bajo peso");
+            if((res.doubleValue()>=18.5) && (res.doubleValue()<25))
+                r.set("Normal");
+            if((res.doubleValue()>=25) && (res.doubleValue()<30))
+                r.set("Sobrepeso");
+            if(res.doubleValue()>=30)
+                r.set("Obeso");
+            i.set(String.format("%.2f", res.doubleValue()));
+            imc.textProperty().bind(i);
+            texto.textProperty().bind(r);
+        }
+        else{
+            imc.setText("(peso * altura ^ 2)");
+            texto.setText("Bajo Peso | Normal | Sobrepeso | Obeso");
+        }
+}
 
-        if(num<18.5)
-            texto.setText("Bajo peso");
-        if((num>=18.5) && (num<25))
-            texto.setText("Normal");
-        if((num>=25) && (num<30))
-            texto.setText("Sobrepeso");
-        if(num>=30)
-            texto.setText("Obeso");
-    }
     public static void main( String[] args )
     {
         launch(args);
